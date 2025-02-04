@@ -1,4 +1,5 @@
 import os
+import json
 import gspread
 from google.oauth2.service_account import Credentials
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -6,32 +7,22 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from datetime import datetime
 from collections import defaultdict  # Import necessário para os relatórios
 
-# 🔹 Definir o caminho do arquivo JSON
-CREDENTIALS_PATH = "credentials.json"
 
-# 🔹 Autenticar com a conta de serviço
+# 🔹 Pegar credenciais do ambiente
+CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS")  # Pegando do Render
+
 def autenticar_google_sheets():
     try:
-        print("🔹 Iniciando autenticação com o Google Sheets...")
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=scopes)
-        gc = gspread.authorize(creds)
-        print("✅ Autenticação bem-sucedida!")
-        return gc
+        if not CREDENTIALS_JSON:
+            raise ValueError("❌ ERRO: Credenciais do Google não encontradas!")
+
+        credenciais = json.loads(CREDENTIALS_JSON)
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(credenciais, scopes=scopes)
+        return gspread.authorize(creds)
+
     except Exception as e:
         raise ValueError(f"❌ Erro ao carregar credenciais: {e}")
-
-# 🔹 Teste rápido de autenticação
-if __name__ == "__main__":
-    try:
-        gc = autenticar_google_sheets()
-        planilha = gc.open("Controle Financeiro")  # Substitua pelo nome correto da sua planilha
-        print("✅ Conectado à planilha com sucesso!")
-    except Exception as e:
-        print(f"❌ Erro ao acessar a planilha: {e}")
 
 # Conectar ao Google Sheets
 gc = autenticar_google_sheets()
